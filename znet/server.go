@@ -2,8 +2,8 @@ package znet
 
 import (
 	"fmt"
+	"github.com/Clay408/zinx/ziface"
 	"net"
-	"zinx/ziface"
 )
 
 // Server 定义一个Server服务器模块
