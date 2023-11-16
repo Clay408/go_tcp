@@ -2,6 +2,7 @@ package znet
 
 import (
 	"fmt"
+	"github.com/Clay408/zinx/utils"
 	"github.com/Clay408/zinx/ziface"
 	"net"
 )
@@ -34,7 +35,7 @@ func (c *Connection) StartReader() {
 
 	for {
 		//读取客户端的数据到buff中,目前最大就是512字节
-		buf := make([]byte, 512)
+		buf := make([]byte, utils.ServerConfig.MaxPackages)
 		cnt, err := c.Conn.Read(buf)
 		if cnt == 0 {
 			fmt.Println("client closed......")

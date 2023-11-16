@@ -15,3 +15,7 @@ func (r *Request) GetConnection() ziface.IConnection {
 func (r *Request) GetData() []byte {
 	return r.data
 }
+
+func (r *Request) GetDataLength() int {
+	return r.length
+}

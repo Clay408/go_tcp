@@ -6,4 +6,7 @@ type IRequest interface {
 
 	// GetData 获取请求数据
 	GetData() []byte
+
+	// GetDataLength 获取数据长度
+	GetDataLength() int
 }

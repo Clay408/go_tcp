@@ -2,6 +2,7 @@ package znet
 
 import (
 	"fmt"
+	"github.com/Clay408/zinx/utils"
 	"github.com/Clay408/zinx/ziface"
 	"net"
 )
@@ -88,10 +89,10 @@ func (s *Server) AddRouter(router ziface.IRouter) {
 // NewServer 初始化Server模块的方法
 func NewServer(name string) ziface.IServer {
 	server := &Server{
-		Name:      name,
+		Name:      utils.ServerConfig.Name,
 		IPVersion: "tcp4",
-		Ip:        "0.0.0.0",
-		Port:      8999,
+		Ip:        utils.ServerConfig.Host,
+		Port:      utils.ServerConfig.TcpPort,
 		Router:    nil,
 		Exited:    make(chan int),
 	}
