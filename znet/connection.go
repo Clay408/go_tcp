@@ -8,20 +8,20 @@ import (
 
 // Connection 链接模块
 type Connection struct {
-	Conn      *net.TCPConn      //当前链接的套接字
-	ConnId    uint32            //当前链接ID
-	IsClosed  bool              //当前链接是否关闭
-	HandleAPI ziface.HandleFunc // 当前链接的业务处理
-	ExitChan  chan bool         //告知当前链接退出或者停止的channel
+	Conn     *net.TCPConn   //当前链接的套接字
+	ConnId   uint32         //当前链接ID
+	IsClosed bool           //当前链接是否关闭
+	ExitChan chan bool      //告知当前链接退出或者停止的channel
+	Router   ziface.IRouter //当前链接的业务处理路由
 }
 
-func NewConnection(conn *net.TCPConn, connId uint32, callBackAPI ziface.HandleFunc) *Connection {
+func NewConnection(conn *net.TCPConn, connId uint32, router ziface.IRouter) *Connection {
 	c := &Connection{
-		Conn:      conn,
-		ConnId:    connId,
-		HandleAPI: callBackAPI,
-		IsClosed:  false,
-		ExitChan:  make(chan bool, 1),
+		Conn:     conn,
+		ConnId:   connId,
+		IsClosed: false,
+		ExitChan: make(chan bool, 1),
+		Router:   router,
 	}
 	return c
 }
@@ -36,22 +36,33 @@ func (c *Connection) StartReader() {
 		//读取客户端的数据到buff中,目前最大就是512字节
 		buf := make([]byte, 512)
 		cnt, err := c.Conn.Read(buf)
+		if cnt == 0 {
+			fmt.Println("client closed......")
+			break
+		}
 		if err != nil {
 			fmt.Println("recv buf err ", err)
 			continue
 		}
 
-		//调用当前链接所绑定的HandlerAPI
-		if err := c.HandleAPI(c.Conn, buf, cnt); err != nil {
-			fmt.Println("ConnectID", c.ConnId, "Handler err", err)
-			break
+		req := Request{
+			conn:   c,
+			data:   buf,
+			length: cnt,
 		}
+
+		//当前链接的业务处理(前 中 后)
+		go func(request ziface.IRequest) {
+			c.Router.PreHandle(request)
+			c.Router.Handle(request)
+			c.Router.PostHandle(request)
+		}(&req)
 	}
 }
 
 // Start 启动链接(让当前的链接开始准备工作)
 func (c *Connection) Start() {
-	fmt.Println("Start connection ,ConnID=", c.ConnId)
+	fmt.Printf("start connection handle, connectionid: %s", string(c.ConnId))
 	//启动从当前链接的读数据的业务
 	go c.StartReader()
 
