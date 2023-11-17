@@ -3,9 +3,8 @@ package znet
 import "github.com/Clay408/zinx/ziface"
 
 type Request struct {
-	conn   ziface.IConnection //客户端请求的链接
-	data   []byte             //客户端请求的数据
-	length int                //客户端请求数据长度
+	conn ziface.IConnection //客户端请求的链接
+	msg  ziface.IMessage    //消息
 }
 
 func (r *Request) GetConnection() ziface.IConnection {
@@ -13,9 +12,9 @@ func (r *Request) GetConnection() ziface.IConnection {
 }
 
 func (r *Request) GetData() []byte {
-	return r.data
+	return r.msg.GetMsgData()
 }
 
-func (r *Request) GetDataLength() int {
-	return r.length
+func (r *Request) GetDataLength() uint32 {
+	return r.msg.GetMsgLen()
 }

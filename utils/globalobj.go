@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Clay408/zinx/ziface"
-	"io/ioutil"
+	"os"
 )
 
 // 全局配置参数
@@ -45,7 +45,7 @@ func init() {
 }
 
 func (config *serverConfig) LoadConfig() {
-	data, err := ioutil.ReadFile("conf/zinx.json")
+	data, err := os.ReadFile("conf/zinx.json")
 	if err != nil {
 		fmt.Println("read config file err, use default config")
 	}

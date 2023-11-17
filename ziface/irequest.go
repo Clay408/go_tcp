@@ -8,5 +8,5 @@ type IRequest interface {
 	GetData() []byte
 
 	// GetDataLength 获取数据长度
-	GetDataLength() int
+	GetDataLength() uint32
 }

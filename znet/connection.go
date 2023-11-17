@@ -1,19 +1,21 @@
 package znet
 
 import (
+	"errors"
 	"fmt"
-	"github.com/Clay408/zinx/utils"
 	"github.com/Clay408/zinx/ziface"
+	"io"
 	"net"
 )
 
 // Connection 链接模块
 type Connection struct {
-	Conn     *net.TCPConn   //当前链接的套接字
-	ConnId   uint32         //当前链接ID
-	IsClosed bool           //当前链接是否关闭
-	ExitChan chan bool      //告知当前链接退出或者停止的channel
-	Router   ziface.IRouter //当前链接的业务处理路由
+	Conn     *net.TCPConn     //当前链接的套接字
+	ConnId   uint32           //当前链接ID
+	IsClosed bool             //当前链接是否关闭
+	ExitChan chan bool        //告知当前链接退出或者停止的channel
+	Router   ziface.IRouter   //当前链接的业务处理路由
+	packet   ziface.IDataPack //数据的处理方式
 }
 
 func NewConnection(conn *net.TCPConn, connId uint32, router ziface.IRouter) *Connection {
@@ -24,6 +26,7 @@ func NewConnection(conn *net.TCPConn, connId uint32, router ziface.IRouter) *Con
 		ExitChan: make(chan bool, 1),
 		Router:   router,
 	}
+	c.packet = &DataPack{}
 	return c
 }
 
@@ -34,22 +37,33 @@ func (c *Connection) StartReader() {
 	defer c.Stop()
 
 	for {
-		//读取客户端的数据到buff中,目前最大就是512字节
-		buf := make([]byte, utils.ServerConfig.MaxPackages)
-		cnt, err := c.Conn.Read(buf)
-		if cnt == 0 {
-			fmt.Println("client closed......")
+		//读取消息
+		headData := make([]byte, c.packet.GetHeadLen())
+		if _, err := io.ReadFull(c.GetTCPConnection(), headData); err != nil {
+			fmt.Println("read msg head error ", err)
 			break
 		}
+		//拆包，得到msgId和msgLen
+		msg, err := c.packet.UnPack(headData)
 		if err != nil {
-			fmt.Println("recv buf err ", err)
-			continue
+			fmt.Println("UnPack err", err)
+			break
 		}
 
+		//根据dataLen，再次读取Data， 放在msg.Data中
+		var data []byte
+		if msg.GetMsgLen() > 0 {
+			data = make([]byte, msg.GetMsgLen())
+			if _, err := io.ReadFull(c.GetTCPConnection(), data); err != nil {
+				fmt.Println("read msg data error ", err)
+				break
+			}
+		}
+		msg.SetMsgData(data)
+		//构造消息请求对象
 		req := Request{
-			conn:   c,
-			data:   buf,
-			length: cnt,
+			conn: c,
+			msg:  msg,
 		}
 
 		//当前链接的业务处理(前 中 后)
@@ -101,7 +115,22 @@ func (c *Connection) RemoteAddr() net.Addr {
 	return c.Conn.RemoteAddr()
 }
 
-// Send 发送数据，将数据发送给远程的客户端
-func (c *Connection) Send([]byte) error {
+// Send 发送数据，将数据发送给客户端
+func (c *Connection) Send(msgId uint32, data []byte) error {
+	if c.IsClosed == true {
+		return errors.New("connection closed when send msg")
+	}
+
+	binary, err := c.packet.Pack(NewMessage(msgId, data))
+	if err != nil {
+		fmt.Println("Pack error msg id = ", msgId)
+		return errors.New("package msg error")
+	}
+
+	//将数据发送给客户端
+	if _, err := c.Conn.Write(binary); err != nil {
+		fmt.Println("Write msg id ", msgId, "error: ", err)
+		return errors.New("conn Write error")
+	}
 	return nil
 }
