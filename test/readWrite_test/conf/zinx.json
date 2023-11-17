@@ -1,0 +1,8 @@
+{
+  "Name": "测试读写分离服务器",
+  "Host": "127.0.0.1",
+  "TcpPort": 9998,
+  "Version": "2.0",
+  "MaxConn": 3,
+  "MaxPackages": 1024
+}

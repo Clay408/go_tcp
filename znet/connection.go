@@ -14,7 +14,7 @@ type Connection struct {
 	ConnId   uint32            //当前链接ID
 	IsClosed bool              //当前链接是否关闭
 	ExitChan chan bool         //告知当前链接退出或者停止的channel
-	Router   ziface.IRouter    //当前链接的业务处理路由
+	msgChan  chan []byte       //无缓冲管道，用于读、写两个goroutine之间的消息通信
 	packet   ziface.IDataPack  //数据的处理方式
 	handler  ziface.IMsgHandle //多路由处理器
 }
@@ -25,6 +25,7 @@ func NewConnection(conn *net.TCPConn, connId uint32, handler ziface.IMsgHandle, 
 		ConnId:   connId,
 		IsClosed: false,
 		ExitChan: make(chan bool, 1),
+		msgChan:  make(chan []byte),
 		handler:  handler,
 		packet:   dp,
 	}
@@ -36,8 +37,8 @@ func (c *Connection) Start() {
 	fmt.Printf("start connection handle, connectionid: %s", string(c.ConnId))
 	//启动从当前链接的读数据的业务
 	go c.StartReader()
-
-	//TODO 启动当前链接的写数据的业务
+	//启动当前链接的写数据的业务
+	go c.StartWriter()
 }
 
 // Stop 停止链接(结束当前连接的工作)
@@ -87,28 +88,27 @@ func (c *Connection) Send(msgId uint32, data []byte) error {
 		return errors.New("package msg error")
 	}
 
-	//将数据发送给客户端
-	if _, err := c.Conn.Write(binary); err != nil {
-		fmt.Println("Write msg id ", msgId, "error: ", err)
-		return errors.New("conn Write error")
-	}
+	//将数据发送给客户端(触发Connection的Writer goroutine)
+	c.msgChan <- binary
 	return nil
 }
 
-// StartReader 连接的读业务方法
+// StartReader 接收客户端数据
 func (c *Connection) StartReader() {
 	fmt.Println("Reader goroutine is running .....")
 	defer fmt.Printf("ConnID=%d, Reader is exit ,remote addr is %s", c.ConnId, c.RemoteAddr().String())
 	defer c.Stop()
 
 	for {
-		//读取消息
+		//按照协议格式读取数据头部内容
 		headData := make([]byte, c.packet.GetHeadLen())
+		//从指定连接通道中把指定的字节数组塞满(没有数据的情况下会阻塞在这里)
 		if _, err := io.ReadFull(c.GetTCPConnection(), headData); err != nil {
 			fmt.Println("read msg head error ", err)
 			break
 		}
-		//拆包，得到msgId和msgLen
+
+		//对头部数据进行拆包，得到msgId和DataLen
 		msg, err := c.packet.UnPack(headData)
 		if err != nil {
 			fmt.Println("UnPack err", err)
@@ -135,5 +135,27 @@ func (c *Connection) StartReader() {
 		go func(request ziface.IRequest) {
 			c.handler.DoMsgHandle(request)
 		}(&req)
+	}
+
+	c.ExitChan <- true
+}
+
+// StartWriter 向客户端返回响应数据
+func (c *Connection) StartWriter() {
+	defer fmt.Println(c.RemoteAddr().String(), "[conn Writer exit!]")
+	for {
+		select {
+		//等待的是包装好的数据，直接写回即可(触发点在Send方法中)
+		case data := <-c.msgChan:
+			//有数据要写给客户端
+			if _, err := c.Conn.Write(data); err != nil {
+				fmt.Println("Send Data error:, ", err, " Conn Writer exit")
+				return
+			}
+			fmt.Printf("%s[ConnID] Writer to client success", string(c.ConnId))
+		case <-c.ExitChan:
+			//conn已经关闭
+			return
+		}
 	}
 }

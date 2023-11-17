@@ -10,6 +10,7 @@ type BaseRouter struct {
 
 // PreHandle 业务前置处理
 func (b *BaseRouter) PreHandle(request ziface.IRequest) {
+
 }
 
 // Handle 业务处理

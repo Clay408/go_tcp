@@ -41,7 +41,7 @@ func init() {
 		MaxPackages: 4096,
 	}
 	//尝试从配置文件中加载这些配置信息
-	//ServerConfig.LoadConfig()
+	ServerConfig.LoadConfig()
 }
 
 func (config *serverConfig) LoadConfig() {

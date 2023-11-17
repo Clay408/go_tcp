@@ -21,10 +21,8 @@ func (m *MsgHandle) DoMsgHandle(request ziface.IRequest) {
 	msgId := request.GetMsgId()
 	handler, ok := m.Apis[msgId]
 	if !ok {
-		dp := &DataPack{}
 		fmt.Println("Router handle is not exist,You need add it.")
-		errMsg, _ := dp.Pack(NewMessage(msgId, []byte("Router handle is not exist,You need add it.")))
-		request.GetConnection().GetTCPConnection().Write(errMsg)
+		request.GetConnection().Send(msgId, []byte("Router handle is not exist,You need add it."))
 		return
 	}
 	handler.PreHandle(request)
