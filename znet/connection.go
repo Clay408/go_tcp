@@ -39,6 +39,14 @@ func (c *Connection) Start() {
 	go c.StartReader()
 	//启动当前链接的写数据的业务
 	go c.StartWriter()
+
+	for {
+		select {
+		case <-c.ExitChan:
+			//得到退出消息，不再阻塞
+			return
+		}
+	}
 }
 
 // Stop 停止链接(结束当前连接的工作)
