@@ -141,7 +141,7 @@ func (c *Connection) StartReader() {
 
 		//当前链接的业务处理
 		go func(request ziface.IRequest) {
-			c.handler.DoMsgHandle(request)
+			c.handler.SendMsgToTaskQueue(request)
 		}(&req)
 	}
 

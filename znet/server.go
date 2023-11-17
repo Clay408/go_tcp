@@ -84,6 +84,7 @@ func (s *Server) Stop() {
 
 func (s *Server) Serve() {
 	go s.Start()
+	go s.handler.StartWorkerPool()
 
 	//做一些启动服务器之后的额外工作.....
 	//....

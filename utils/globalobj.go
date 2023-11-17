@@ -22,9 +22,16 @@ type serverConfig struct {
 	Zinx 相关配置
 	*/
 
-	Version     string //zinx版本号
-	MaxConn     int    //最大链接数
-	MaxPackages uint32 // 最大数据包长度，超过这个长度就会进行拆包
+	Version          string //zinx版本号
+	MaxConn          int    //最大链接数
+	MaxPackages      uint32 // 最大数据包长度，超过这个长度就会进行拆包
+	WorkerPoolSize   uint32 //业务工作Worker池的数量
+	MaxWorkerTaskLen uint32 //业务工作Worker对应负责的任务队列最大任务存储数量
+
+	/*
+		config file path
+	*/
+	ConfFilePath string
 }
 
 // ServerConfig 定义一个全局的对外对象
@@ -34,11 +41,14 @@ var ServerConfig *serverConfig
 func init() {
 	//如果配置文件没有加载，默认的值
 	ServerConfig = &serverConfig{
-		Name:        "ZinxServerApp",
-		Version:     "V1.0",
-		TcpPort:     8999,
-		MaxConn:     1000,
-		MaxPackages: 4096,
+		Name:             "ZinxServerApp",
+		Version:          "V1.0",
+		TcpPort:          8999,
+		MaxConn:          1000,
+		MaxPackages:      4096,
+		ConfFilePath:     "conf/zinx.json",
+		WorkerPoolSize:   10,
+		MaxWorkerTaskLen: 1024,
 	}
 	//尝试从配置文件中加载这些配置信息
 	ServerConfig.LoadConfig()
