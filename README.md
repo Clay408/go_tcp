@@ -12,3 +12,10 @@ go get github.com/Clay408/zinx
 
 
 
+## 消息队列以及多任务处理机制
+![Image 消息队列以及多任务处理机制](https://raw.github.com/Clay408/zinx/main/img/2.png)
+
+
+
+
+
