@@ -1,4 +1,4 @@
-![Image 一张Logo图片](https://raw.github.com/Clay408/zinx/main/img/logo.jpg)
+![Image 一张Logo图片](https://raw.github.com/Clay408/img-folder/main/xserver/logo.jpg)
 
 # XSERVER
 
@@ -13,7 +13,7 @@ go get github.com/Clay408/zinx
 
 
 ## 消息队列以及多任务处理机制
-![Image 消息队列以及多任务处理机制](https://raw.github.com/Clay408/zinx/main/img/2.png)
+![Image 消息队列以及多任务处理机制](https://raw.github.com/Clay408/img-folder/main/xserver/2.png)
 
 
 
