@@ -11,6 +11,11 @@ import (
 type DataPack struct {
 }
 
+func NewDataPack() *DataPack {
+	dp := &DataPack{}
+	return dp
+}
+
 func (d *DataPack) GetHeadLen() uint32 {
 	// 4字节数据长度 | 4字节消息ID
 	return 8

@@ -1,0 +1,8 @@
+{
+  "Name": "Routers",
+  "Host": "127.0.0.1",
+  "TcpPort": 7777,
+  "Version": "2.0",
+  "MaxConn": 3,
+  "MaxPackages": 1024
+}

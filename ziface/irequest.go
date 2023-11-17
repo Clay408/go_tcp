@@ -9,4 +9,7 @@ type IRequest interface {
 
 	// GetDataLength 获取数据长度
 	GetDataLength() uint32
+
+	// GetMsgId 获取消息ID
+	GetMsgId() uint32
 }

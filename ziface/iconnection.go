@@ -10,6 +10,8 @@ type IConnection interface {
 	Stop()
 	// GetTCPConnection 获取当前链接所绑定的socket conn
 	GetTCPConnection() *net.TCPConn
+	// GetDataPackHandle 获取当前链接对应的数据封包拆包工具
+	GetDataPackHandle() IDataPack
 	// GetConnID 获取当前链接模块的链接ID
 	GetConnID() uint32
 	// RemoteAddr 获取远程客户端的TCP状态 IP port

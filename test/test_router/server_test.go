@@ -27,6 +27,6 @@ func (p *PingRouter) PostHandle(request ziface.IRequest) {
 
 func TestStartRouterServer(t *testing.T) {
 	server := znet.NewServer("router server")
-	server.AddRouter(&PingRouter{})
+	server.AddRouter(uint32(1), &PingRouter{})
 	server.Serve()
 }

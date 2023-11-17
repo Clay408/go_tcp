@@ -27,7 +27,7 @@ type serverConfig struct {
 	MaxPackages uint32 // 最大数据包长度，超过这个长度就会进行拆包
 }
 
-// 定义一个全局的对外对象
+// ServerConfig 定义一个全局的对外对象
 var ServerConfig *serverConfig
 
 // init 初始化加载全局配置
@@ -41,7 +41,7 @@ func init() {
 		MaxPackages: 4096,
 	}
 	//尝试从配置文件中加载这些配置信息
-	ServerConfig.LoadConfig()
+	//ServerConfig.LoadConfig()
 }
 
 func (config *serverConfig) LoadConfig() {

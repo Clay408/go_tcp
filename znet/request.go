@@ -18,3 +18,8 @@ func (r *Request) GetData() []byte {
 func (r *Request) GetDataLength() uint32 {
 	return r.msg.GetMsgLen()
 }
+
+// GetMsgId 获取消息ID
+func (r *Request) GetMsgId() uint32 {
+	return r.msg.GetMsgId()
+}

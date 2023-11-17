@@ -9,23 +9,39 @@ import (
 
 // Server 定义server服务器模块
 type Server struct {
-	Name      string         //服务器名称
-	IPVersion string         //服务器监听的IP版本
-	Ip        string         //服务器IP地址
-	Port      int            //服务器监听的端口
-	Router    ziface.IRouter //当前的Server添加一个router，server注册的链接对应的处理业务
-	Exited    chan int       //异常退出标识通道
+	Name      string            //服务器名称
+	IPVersion string            //服务器监听的IP版本
+	Ip        string            //服务器IP地址
+	Port      int               //服务器监听的端口
+	Router    ziface.IRouter    //当前的Server添加一个router，server注册的链接对应的处理业务
+	Exited    chan int          //异常退出标识通道
+	handler   ziface.IMsgHandle //多路由处理器
+	dataPack  ziface.IDataPack  //数据封包拆包处理器(TODO 后续可以考虑做成链式的)
+}
+
+// NewServer 初始化Server模块的方法
+func NewServer(name string) ziface.IServer {
+	server := &Server{
+		Name:      utils.ServerConfig.Name,
+		IPVersion: "tcp4",
+		Ip:        utils.ServerConfig.Host,
+		Port:      utils.ServerConfig.TcpPort,
+		Exited:    make(chan int),
+		handler:   NewMsgHandle(),
+		dataPack:  NewDataPack(),
+	}
+	return server
 }
 
 func (s *Server) Start() {
 	//Router 必须要添加
-	if s.Router == nil {
-		fmt.Println("The router can not empty,Please add Router!!!!")
+	if s.handler == nil {
+		fmt.Println("The router handler can not empty,Please add Router!!!!")
 		s.Exited <- 1
 		return
 	}
 
-	fmt.Printf("[Start Server Listener at IP %s ,Port: %d is starting\n]", s.Ip, s.Port)
+	fmt.Printf("[Start Server Listener at IP %s ,Port: %d is starting,total have %d router handler\n]", s.Ip, s.Port, s.handler.GetCurrentRouterNum())
 	//获取一个TCP的Addr
 	tcpAddr, err := net.ResolveTCPAddr(s.IPVersion, fmt.Sprintf("%s:%d", s.Ip, s.Port))
 	if err != nil {
@@ -55,7 +71,7 @@ func (s *Server) Start() {
 		fmt.Printf("client connected,connId: %s", string(cid))
 
 		//将处理新连接的业务方法和Conn进行绑定得到Conn模块
-		dealConn := NewConnection(conn, cid, s.Router)
+		dealConn := NewConnection(conn, cid, s.handler, s.dataPack)
 		cid++
 		//启动当前链接的业务处理
 		go dealConn.Start()
@@ -82,19 +98,6 @@ func (s *Server) Serve() {
 	}
 }
 
-func (s *Server) AddRouter(router ziface.IRouter) {
-	s.Router = router
-}
-
-// NewServer 初始化Server模块的方法
-func NewServer(name string) ziface.IServer {
-	server := &Server{
-		Name:      utils.ServerConfig.Name,
-		IPVersion: "tcp4",
-		Ip:        utils.ServerConfig.Host,
-		Port:      utils.ServerConfig.TcpPort,
-		Router:    nil,
-		Exited:    make(chan int),
-	}
-	return server
+func (s *Server) AddRouter(msgId uint32, router ziface.IRouter) {
+	s.handler.AddRouter(msgId, router)
 }

@@ -10,24 +10,89 @@ import (
 
 // Connection 链接模块
 type Connection struct {
-	Conn     *net.TCPConn     //当前链接的套接字
-	ConnId   uint32           //当前链接ID
-	IsClosed bool             //当前链接是否关闭
-	ExitChan chan bool        //告知当前链接退出或者停止的channel
-	Router   ziface.IRouter   //当前链接的业务处理路由
-	packet   ziface.IDataPack //数据的处理方式
+	Conn     *net.TCPConn      //当前链接的套接字
+	ConnId   uint32            //当前链接ID
+	IsClosed bool              //当前链接是否关闭
+	ExitChan chan bool         //告知当前链接退出或者停止的channel
+	Router   ziface.IRouter    //当前链接的业务处理路由
+	packet   ziface.IDataPack  //数据的处理方式
+	handler  ziface.IMsgHandle //多路由处理器
 }
 
-func NewConnection(conn *net.TCPConn, connId uint32, router ziface.IRouter) *Connection {
+func NewConnection(conn *net.TCPConn, connId uint32, handler ziface.IMsgHandle, dp ziface.IDataPack) *Connection {
 	c := &Connection{
 		Conn:     conn,
 		ConnId:   connId,
 		IsClosed: false,
 		ExitChan: make(chan bool, 1),
-		Router:   router,
+		handler:  handler,
+		packet:   dp,
 	}
-	c.packet = &DataPack{}
 	return c
+}
+
+// Start 启动链接(让当前的链接开始准备工作)
+func (c *Connection) Start() {
+	fmt.Printf("start connection handle, connectionid: %s", string(c.ConnId))
+	//启动从当前链接的读数据的业务
+	go c.StartReader()
+
+	//TODO 启动当前链接的写数据的业务
+}
+
+// Stop 停止链接(结束当前连接的工作)
+func (c *Connection) Stop() {
+	fmt.Println("Connection stop .. ConnectionId = ", c.ConnId)
+
+	//如果当前链接已经关闭
+	if c.IsClosed == true {
+		return
+	}
+
+	c.IsClosed = true
+	//调用关闭Socket连接
+	c.Conn.Close()
+	//关闭管道
+	close(c.ExitChan)
+}
+
+// GetTCPConnection 获取当前链接所绑定的socket conn
+func (c *Connection) GetTCPConnection() *net.TCPConn {
+	return c.Conn
+}
+
+func (c *Connection) GetDataPackHandle() ziface.IDataPack {
+	return c.packet
+}
+
+// GetConnID 获取当前链接模块的链接ID
+func (c *Connection) GetConnID() uint32 {
+	return c.ConnId
+}
+
+// RemoteAddr 获取远程客户端的TCP状态 IP port
+func (c *Connection) RemoteAddr() net.Addr {
+	return c.Conn.RemoteAddr()
+}
+
+// Send 发送数据，将数据发送给客户端
+func (c *Connection) Send(msgId uint32, data []byte) error {
+	if c.IsClosed == true {
+		return errors.New("connection closed when send msg")
+	}
+
+	binary, err := c.packet.Pack(NewMessage(msgId, data))
+	if err != nil {
+		fmt.Println("Pack error msg id = ", msgId)
+		return errors.New("package msg error")
+	}
+
+	//将数据发送给客户端
+	if _, err := c.Conn.Write(binary); err != nil {
+		fmt.Println("Write msg id ", msgId, "error: ", err)
+		return errors.New("conn Write error")
+	}
+	return nil
 }
 
 // StartReader 连接的读业务方法
@@ -66,71 +131,9 @@ func (c *Connection) StartReader() {
 			msg:  msg,
 		}
 
-		//当前链接的业务处理(前 中 后)
+		//当前链接的业务处理
 		go func(request ziface.IRequest) {
-			c.Router.PreHandle(request)
-			c.Router.Handle(request)
-			c.Router.PostHandle(request)
+			c.handler.DoMsgHandle(request)
 		}(&req)
 	}
-}
-
-// Start 启动链接(让当前的链接开始准备工作)
-func (c *Connection) Start() {
-	fmt.Printf("start connection handle, connectionid: %s", string(c.ConnId))
-	//启动从当前链接的读数据的业务
-	go c.StartReader()
-
-	//TODO 启动当前链接的写数据的业务
-}
-
-// Stop 停止链接(结束当前连接的工作)
-func (c *Connection) Stop() {
-	fmt.Println("Connection stop .. ConnectionId = ", c.ConnId)
-
-	//如果当前链接已经关闭
-	if c.IsClosed == true {
-		return
-	}
-
-	c.IsClosed = true
-	//调用关闭Socket连接
-	c.Conn.Close()
-	//关闭管道
-	close(c.ExitChan)
-}
-
-// GetTCPConnection 获取当前链接所绑定的socket conn
-func (c *Connection) GetTCPConnection() *net.TCPConn {
-	return c.Conn
-}
-
-// GetConnID 获取当前链接模块的链接ID
-func (c *Connection) GetConnID() uint32 {
-	return c.ConnId
-}
-
-// RemoteAddr 获取远程客户端的TCP状态 IP port
-func (c *Connection) RemoteAddr() net.Addr {
-	return c.Conn.RemoteAddr()
-}
-
-// Send 发送数据，将数据发送给客户端
-func (c *Connection) Send(msgId uint32, data []byte) error {
-	if c.IsClosed == true {
-		return errors.New("connection closed when send msg")
-	}
-
-	binary, err := c.packet.Pack(NewMessage(msgId, data))
-	if err != nil {
-		fmt.Println("Pack error msg id = ", msgId)
-		return errors.New("package msg error")
-	}
-
-	//将数据发送给客户端
-	if _, err := c.Conn.Write(binary); err != nil {
-		fmt.Println("Write msg id ", msgId, "error: ", err)
-		return errors.New("conn Write error")
-	}
-	return nil
 }
