@@ -17,5 +17,8 @@ go get github.com/Clay408/zinx
 
 
 
-
+## TODO
+- 客户端连接统一管理
+- 连接属性设置
+- 压力测试
 
