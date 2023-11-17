@@ -8,5 +8,5 @@
 go get github.com/Clay408/zinx
 ```
 
-![Image 一张Logo图片](https://raw.github.com/Clay408/zinx/main/img/1.png)
+![Image 一张Logo图片](https://raw.github.com/Clay408/zinx/main/img/xxxxx.png)
 
